@@ -8,12 +8,12 @@ pipeline {
         }
         stage('Build') {
             steps {
-                sh 'docker build -t your-image-name .'
+                sh 'docker build -t student-survey .'
             }
         }
         stage('Deploy to Kubernetes') {
             steps {
-                sh 'kubectl apply -f your-k8s-deployment.yaml'
+                sh 'kubectl apply -f swe645ass2.yaml'
             }
         }
     }
