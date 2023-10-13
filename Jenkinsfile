@@ -1,20 +1,41 @@
 pipeline {
     agent any
+
+    environment {
+        DOCKER_IMAGE = "soham0711/student-survey:${env.BUILD_ID}"
+        KUBECONFIG_CREDENTIALS_ID = 'myKubeconfigID'
+    }
+
     stages {
-        stage('Checkout') {
+        stage('Build Docker Image') {
             steps {
-                checkout scm
+                script {
+                    docker.build("$DOCKER_IMAGE")
+                }
             }
         }
-        stage('Build') {
+
+        stage('Push Docker Image') {
             steps {
-                sh 'docker build -t student-survey .'
+                withCredentials([usernamePassword(credentialsId: 'DockerHubCredentials', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
+                    script {
+                        sh "docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD"
+                        sh "docker push $DOCKER_IMAGE"
+                    }
+                }
             }
         }
+
         stage('Deploy to Kubernetes') {
             steps {
-                sh 'kubectl apply -f swe645ass2.yaml'
+                withCredentials([file(credentialsId: "$KUBECONFIG_CREDENTIALS_ID", variable: 'KUBECONFIG')]) {
+                    sh '''
+                        kubectl config use-context swe645ass2
+
+                        kubectl set image deployment/studentsurvey nginx=$DOCKER_IMAGE
+                    '''
+                }
             }
-        }
-    }
+        }
+    }
 }
